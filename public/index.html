@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BIP39 Stress Tester</title>
+    <style>
+        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
+        #results { height: 300px; overflow-y: scroll; border: 1px solid #333; padding: 10px; margin-top: 20px; }
+        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>BIP39 Edge Generator</h1>
+    <button onclick="stressTest()">Run 100 Requests Now</button>
+    <div id="stats">Requests: 0 | Success: 0</div>
+    <div id="results"></div>
+
+    <script>
+        let count = 0;
+        let success = 0;
+
+        async function stressTest() {
+            for(let i=0; i<100; i++) {
+                fetch('/api/generate')
+                    .then(res => res.json())
+                    .then(data => {
+                        count++;
+                        if(data.success) success++;
+                        document.getElementById('stats').innerText = `Requests: ${count} | Success: ${success}`;
+                        const div = document.createElement('div');
+                        div.innerText = data.phrase;
+                        document.getElementById('results').prepend(div);
+                    });
+            }
+        }
+    </script>
+</body>
+</html>
