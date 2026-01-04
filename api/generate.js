@@ -31,7 +31,7 @@ export default async function handler(req) {
     }
 
     return new Response(JSON.stringify({ 
-      phrase: phrase.join
+      phrase: phrase.join("")
     }), {
       status: 200,
       headers: { 
