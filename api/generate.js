@@ -31,7 +31,8 @@ export default async function handler(req) {
     }
 
     return new Response(JSON.stringify({ 
-      words: phrase.join("")
+      success: true, 
+      phrase: phrase.join(" ") 
     }), {
       status: 200,
       headers: { 
@@ -42,4 +43,4 @@ export default async function handler(req) {
   } catch (e) {
     return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500 });
   }
-}
+                                        }
