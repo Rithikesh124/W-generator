@@ -28,7 +28,7 @@
             const log = document.getElementById('log');
             
             // Launch 1000 requests in parallel
-            const requests = Array.from({ length: 1000 }).map(async () => {
+            const requests = Array.from({ length: 10}).map(async () => {
                 try {
                     const res = await fetch('/api/generate');
                     const data = await res.json();
