@@ -1,36 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>BIP39 Stress Tester</title>
+    <title>BIP39 High Speed Test</title>
     <style>
-        body { font-family: monospace; background: #111; color: #0f0; padding: 20px; }
-        #results { height: 300px; overflow-y: scroll; border: 1px solid #333; padding: 10px; margin-top: 20px; }
-        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; }
+        body { font-family: 'Courier New', monospace; background: #000; color: #0f0; padding: 40px; }
+        .stats { font-size: 20px; margin-bottom: 20px; color: #fff; }
+        #log { height: 400px; overflow-y: auto; background: #111; padding: 10px; border: 1px solid #333; }
+        button { background: #0f0; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #fff; }
     </style>
 </head>
 <body>
-    <h1>BIP39 Edge Generator</h1>
-    <button onclick="stressTest()">Run 100 Requests Now</button>
-    <div id="stats">Requests: 0 | Success: 0</div>
-    <div id="results"></div>
+    <div class="stats">
+        Status: <span id="status">Idle</span> | 
+        Total: <span id="total">0</span> | 
+        Success: <span id="success">0</span>
+    </div>
+    <button id="btn" onclick="startStressTest()">START 1000 REQUESTS</button>
+    <div id="log"></div>
 
     <script>
-        let count = 0;
+        let total = 0;
         let success = 0;
 
-        async function stressTest() {
-            for(let i=0; i<100; i++) {
-                fetch('/api/generate')
-                    .then(res => res.json())
-                    .then(data => {
-                        count++;
-                        if(data.success) success++;
-                        document.getElementById('stats').innerText = `Requests: ${count} | Success: ${success}`;
-                        const div = document.createElement('div');
-                        div.innerText = data.phrase;
-                        document.getElementById('results').prepend(div);
-                    });
-            }
+        async function startStressTest() {
+            document.getElementById('status').innerText = "Running...";
+            const log = document.getElementById('log');
+            
+            // Launch 1000 requests in parallel
+            const requests = Array.from({ length: 1000 }).map(async () => {
+                try {
+                    const res = await fetch('/api/generate');
+                    const data = await res.json();
+                    if(data.success) {
+                        success++;
+                        total++;
+                        const entry = document.createElement('div');
+                        entry.innerText = `> ${data.phrase}`;
+                        log.prepend(entry);
+                    }
+                } catch (e) {
+                    total++;
+                }
+                document.getElementById('total').innerText = total;
+                document.getElementById('success').innerText = success;
+            });
+
+            await Promise.all(requests);
+            document.getElementById('status').innerText = "Completed";
         }
     </script>
 </body>
