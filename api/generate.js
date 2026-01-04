@@ -1,52 +1,46 @@
-import { generateMnemonic, english } from 'bip39-light'; 
-// Note: In Edge functions, we use lightweight versions or Web Crypto
+import { wordlist } from './_wordlist.js';
 
 export const config = {
-  runtime: 'edge', // This is critical for 10k RPS performance
+  runtime: 'edge', // High performance globally
 };
 
 export default async function handler(req) {
   try {
-    // Standard BIP39 12-word logic: 
-    // 1. Generate 128 bits (16 bytes) of entropy
+    // 1. Generate 16 bytes (128 bits) of random entropy
     const entropy = crypto.getRandomValues(new Uint8Array(16));
+
+    // 2. Compute SHA-256 hash for the checksum
+    const hashBuffer = await crypto.subtle.digest('SHA-256', entropy);
+    const hashArray = new Uint8Array(hashBuffer);
     
-    // 2. Convert to mnemonic (using a fast lightweight helper)
-    // For the sake of pure speed and "always success", we'll return a JSON
-    const mnemonic = await generateBIP39(entropy);
+    // 3. Convert entropy to bit string
+    let bits = "";
+    for (const byte of entropy) {
+      bits += byte.toString(2).padStart(8, '0');
+    }
+
+    // 4. Add Checksum (First 4 bits of the hash for 128-bit entropy)
+    const checksumBits = hashArray[0].toString(2).padStart(8, '0').slice(0, 4);
+    bits += checksumBits;
+
+    // 5. Split into 11-bit chunks and map to words
+    const phrase = [];
+    for (let i = 0; i < bits.length; i += 11) {
+      const index = parseInt(bits.slice(i, i + 11), 2);
+      phrase.push(wordlist[index]);
+    }
 
     return new Response(JSON.stringify({ 
       success: true, 
-      phrase: mnemonic 
+      phrase: phrase.join(" ") 
     }), {
       status: 200,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*' 
+      },
     });
-  } catch (error) {
-    return new Response(JSON.stringify({ success: false }), { status: 500 });
+  } catch (e) {
+    return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500 });
   }
-}
-
-// Optimized BIP39 Logic for Edge Runtime
-async function generateBIP39(entropy) {
-  const wordlist = [ "abandon", "ability", "able", /* ... 2048 words ... */ ];
-  // Note: In production, import the full BIP39 english wordlist here
-  
-  // Logic: Entropy -> Hash -> Checksum -> Binary -> Word Mapping
-  // For brevity in this example, we utilize a fast mapping technique:
-  let bin = "";
-  for (let b of entropy) bin += b.toString(2).padStart(8, '0');
-  
-  const hashBuffer = await crypto.subtle.digest('SHA-256', entropy);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashBin = hashArray[0].toString(2).padStart(8, '0');
-  const checksum = hashBin.slice(0, 4);
-  
-  const finalBin = bin + checksum;
-  const words = [];
-  for (let i = 0; i < 132; i += 11) {
-    const index = parseInt(finalBin.slice(i, i + 11), 2);
-    words.push(wordlist[index] || "abandon"); // Fallback for demo
-  }
-  return words.join(" ");
 }
